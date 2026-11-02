@@ -74,16 +74,18 @@ npm run dev      # abre em http://localhost:5173/meu-bairro-recortes/
 npm run build    # atualiza a pasta docs/ (a que vai para o GitHub Pages)
 ```
 
-### Publicar no GitHub Pages
+### Publicar no GitHub Pages (com GitHub Actions)
 
-A versão pronta para publicar fica na pasta **`docs/`** (já vem gerada).
+O código é TypeScript: o navegador não lê `.ts` direto, então o site precisa ser **compilado** antes de publicar.
+O GitHub Actions faz isso sozinho a cada envio.
 
-1. Crie o repositório **meu-bairro-recortes** no GitHub e envie estes arquivos (GitHub Desktop).
-2. No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**,
-   branch **main**, pasta **/docs**. Salve.
-3. Em 1 ou 2 minutos o link aparece no topo dessa mesma página.
+1. No GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+2. O arquivo `publicar.yml` precisa ficar em **`.github/workflows/publicar.yml`**
+   (no gerenciador de arquivos, `Ctrl+H` mostra pastas que começam com ponto).
+3. Envie pelo GitHub Desktop. Acompanhe na aba **Actions**; quando ficar verde, o site está no ar.
 
-Depois de mudar o código, rode `npm run build` para atualizar a pasta `docs/` e envie de novo.
+Atenção: **não** use "Deploy from a branch" com a pasta raiz (/). Assim o GitHub mostra o código-fonte
+sem compilar e a página aparece sem visual e sem funcionar.
 Se o nome do repositório for outro, troque o `base` em `vite.config.ts`.
 
 ## Arquivos
