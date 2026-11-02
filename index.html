@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meu Bairro – Recortes</title>
+  <meta name="description" content="Ferramenta para recortar os desenhos das crianças (personagens e cenários) e levar para o jogo Meu Bairro Vira Game.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23ffd166'/%3E%3Cpath d='M18 46 46 18M18 18l28 28' stroke='%231f5fc4' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="topo">
+    <h1>Meu Bairro <span>Recortes</span></h1>
+    <nav class="abas" role="tablist" aria-label="O que recortar">
+      <button role="tab" id="aba-personagem" aria-selected="true" data-modo="personagem">Personagem</button>
+      <button role="tab" id="aba-cenario" aria-selected="false" data-modo="cenario">Cenário</button>
+    </nav>
+    <div class="acoes">
+      <label class="botao">Abrir imagem<input type="file" id="abrir-imagem" accept="image/*" hidden></label>
+      <label class="botao">Abrir projeto<input type="file" id="abrir-projeto" accept=".json,application/json" hidden></label>
+      <button class="botao" id="salvar-projeto">Salvar projeto</button>
+      <button class="botao principal" id="exportar">Exportar ZIP para o jogo</button>
+      <button class="botao redondo" id="abrir-ajuda" aria-label="Ajuda">?</button>
+    </div>
+  </header>
+
+  <main class="area">
+    <section class="editor" aria-label="Imagem escaneada">
+      <div class="ferramentas" role="toolbar" aria-label="Ferramentas de recorte">
+        <button class="botao" id="ferr-desenhar" title="Clique ponto a ponto em volta do desenho. Feche clicando no primeiro ponto, com duplo clique ou Enter.">✂ Desenhar contorno</button>
+        <button class="botao" id="ferr-pivo" title="Clique onde a peça gira (a articulação).">◎ Marcar pivô</button>
+        <button class="botao so-personagem" id="ferr-encaixe" title="Só para peças desenhadas separadas: clique no desenho do pai onde esta peça se prende.">◆ Marcar encaixe</button>
+        <button class="botao" id="ferr-apagar" title="Apaga o contorno da peça ou do elemento escolhido.">Apagar contorno</button>
+        <span class="espaco"></span>
+        <button class="botao redondo" id="zoom-menos" aria-label="Diminuir zoom">−</button>
+        <button class="botao redondo" id="zoom-mais" aria-label="Aumentar zoom">+</button>
+        <button class="botao" id="enquadrar">Ver tudo</button>
+      </div>
+      <canvas id="tela-editor"></canvas>
+      <p class="dica" id="dica-editor" aria-live="polite"></p>
+    </section>
+
+    <aside class="painel" id="painel-personagem" aria-label="Personagem">
+
+      <details open>
+        <summary>Peças <span id="p-contagem" class="contagem"></span></summary>
+        <ul class="lista-pecas" id="p-pecas"></ul>
+        <p class="nota" id="p-dica-peca"></p>
+      </details>
+
+      <details open>
+        <summary>Prévia e ajustes</summary>
+        <canvas id="tela-previa" class="previa"></canvas>
+        <div class="linha">
+          <select id="p-animacao" aria-label="Animação da prévia"></select>
+          <button class="botao" id="p-virar">Virar</button>
+        </div>
+        <p class="nota">Na pose <b>Parado</b>, arraste uma peça para ajustar o encaixe.</p>
+        <label>Afastar os braços <output id="p-bracos-valor"></output>
+          <input type="range" id="p-bracos" min="-40" max="100" step="1">
+        </label>
+        <label>Afastar as pernas <output id="p-pernas-valor"></output>
+          <input type="range" id="p-pernas" min="-40" max="80" step="1">
+        </label>
+        <label>Tirar o branco do papel <output id="p-papel-valor"></output>
+          <input type="range" id="p-papel" min="0" max="60" step="1">
+        </label>
+        <fieldset class="ajuste-fino">
+          <legend>Ajuste fino da peça escolhida</legend>
+          <label>Para os lados <input type="number" id="p-ajuste-x" step="1"></label>
+          <label>Para cima/baixo <input type="number" id="p-ajuste-y" step="1"></label>
+          <button class="botao" id="p-zerar-peca">Zerar</button>
+        </fieldset>
+        <label>Altura da arte (pixels) <input type="number" id="p-altura" min="100" max="2000" step="10"></label>
+        <button class="botao" id="p-zerar-tudo">Zerar todos os ajustes</button>
+      </details>
+      <details open>
+        <summary>Quem é</summary>
+        <label>Tipo
+          <select id="p-tipo">
+            <option value="personagem">Personagem jogável</option>
+            <option value="npc">Pessoa do bairro (NPC)</option>
+            <option value="tia">Tia</option>
+          </select>
+        </label>
+        <label>Nome <input id="p-nome" placeholder="Ex.: Maria Clara"></label>
+        <label>Nome da pasta <input id="p-id" placeholder="maria_clara"></label>
+        <label>Autoria <input id="p-autoria" placeholder="Apelido da criança"></label>
+        <label>Apresentação (audiodescrição curta)
+          <textarea id="p-apresentacao" rows="3" placeholder="Oi, eu sou a Maria. Tenho cabelo cacheado e blusa verde."></textarea>
+        </label>
+        <label class="arquivo">Áudio da apresentação (.ogg)
+          <input type="file" id="p-audio" accept="audio/*,.ogg">
+        </label>
+        <p class="nota" id="p-audio-nome"></p>
+      </details>
+  </aside>
+
+    <aside class="painel" id="painel-cenario" aria-label="Cenário" hidden>
+
+      <details open>
+        <summary>Elementos <span id="c-contagem" class="contagem"></span></summary>
+        <ul class="lista-pecas" id="c-elementos"></ul>
+        <button class="botao" id="c-novo">+ Novo elemento</button>
+        <fieldset class="elemento" id="c-elemento">
+          <legend>Elemento escolhido</legend>
+          <label>Nome <input id="c-el-nome" placeholder="arvore"></label>
+          <label>Camada
+            <select id="c-el-camada">
+              <option value="fundo">Fundo (atrás de tudo)</option>
+              <option value="meio">Meio (atrás do personagem)</option>
+              <option value="frente">Frente (na frente do personagem)</option>
+            </select>
+          </label>
+          <label class="marcar"><input type="checkbox" id="c-el-espelhar"> Espelhar</label>
+          <label>Tamanho <output id="c-el-escala-valor"></output>
+            <input type="range" id="c-el-escala" min="0.2" max="3" step="0.05">
+          </label>
+          <div class="linha">
+            <button class="botao" id="c-el-lugar">Voltar ao lugar</button>
+            <button class="botao perigo" id="c-el-apagar">Apagar elemento</button>
+          </div>
+        </fieldset>
+      </details>
+
+      <details open>
+        <summary>Montagem</summary>
+        <canvas id="tela-montagem" class="previa larga"></canvas>
+        <p class="nota">Arraste os elementos para arrumar. O retângulo pontilhado é o tamanho da tela do jogo; o boneco cinza mostra o tamanho do personagem.</p>
+      </details>
+      <details open>
+        <summary>Folha</summary>
+        <label>Nome do cenário <input id="c-nome" placeholder="Ex.: Praça da Igreja"></label>
+        <label>Nome da pasta <input id="c-id" placeholder="praca_da_igreja"></label>
+        <label>Autoria <input id="c-autoria" placeholder="Apelidos das crianças"></label>
+        <label>Audiodescrição (curta)
+          <textarea id="c-audiodescricao" rows="3" placeholder="Casa amarela com árvore grande e rosa vermelha."></textarea>
+        </label>
+        <label class="arquivo">Áudio da audiodescrição (.ogg)
+          <input type="file" id="c-audio" accept="audio/*,.ogg">
+        </label>
+        <p class="nota" id="c-audio-nome"></p>
+        <label>Altura da folha no jogo (pixels) <input type="number" id="c-altura" min="100" max="4000" step="10"></label>
+        <p class="nota">A tela do jogo tem 720 de altura e o personagem tem 190.</p>
+        <label>Tirar o branco do papel <output id="c-papel-valor"></output>
+          <input type="range" id="c-papel" min="0" max="60" step="1">
+        </label>
+        <label class="marcar"><input type="checkbox" id="c-fundo"> Exportar também a folha inteira (fundo)</label>
+      </details>
+  </aside>
+  </main>
+
+  <dialog id="ajuda" aria-labelledby="ajuda-titulo">
+    <h2 id="ajuda-titulo">Como usar</h2>
+    <ol>
+      <li><b>Abrir imagem</b>: escolha a folha escaneada (ou foto bem reta).</li>
+      <li>Escolha uma peça (ou crie um elemento) e clique em <b>Desenhar contorno</b>. Clique ponto a ponto em volta do desenho. Para fechar: clique no primeiro ponto, dê duplo clique ou aperte <kbd>Enter</kbd>.</li>
+      <li>O <b>pivô</b> (onde a peça gira) aparece sozinho. Arraste para a articulação certa: pescoço, ombro, cotovelo, quadril, joelho.</li>
+      <li>Se as peças foram desenhadas <b>separadas</b> na folha, use <b>Marcar encaixe</b>: clique no desenho do pai onde a peça se prende (ex.: no ombro do tronco para o braço).</li>
+      <li>Veja a <b>prévia</b>, arrume os ajustes e clique em <b>Exportar ZIP</b>. Extraia o ZIP dentro da pasta do jogo: as pastas já vêm com o caminho certo.</li>
+      <li><b>Salvar projeto</b> guarda tudo (com a imagem) para continuar depois. A ferramenta também guarda sozinha neste navegador.</li>
+    </ol>
+    <h3>Atalhos</h3>
+    <ul>
+      <li>Roda do mouse: zoom. <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd> (ver tudo).</li>
+      <li>Mover a imagem: arraste com o botão direito, ou segure <kbd>Espaço</kbd> e arraste.</li>
+      <li><kbd>Backspace</kbd> desfaz o último ponto. <kbd>Esc</kbd> cancela. <kbd>Shift</kbd> + clique apaga um ponto.</li>
+    </ul>
+    <form method="dialog"><button class="botao principal">Entendi</button></form>
+  </dialog>
+
+  <div class="aviso" id="aviso" role="status" aria-live="polite" hidden></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

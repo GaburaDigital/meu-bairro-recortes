@@ -1,0 +1,145 @@
+/* Visual da ferramenta: as mesmas cores e letras do jogo (creme, amarelo, azul; Chewy e Atkinson). */
+@font-face { font-family: 'Atkinson Hyperlegible'; src: url('/fontes/atkinson_hyperlegible_regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Atkinson Hyperlegible'; src: url('/fontes/atkinson_hyperlegible_negrito.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Chewy'; src: url('/fontes/chewy_regular.woff2') format('woff2'); font-display: swap; }
+
+:root {
+  --creme: #fffeca;
+  --papel: #fffdf2;
+  --amarelo: #ffd166;
+  --azul: #1f5fc4;
+  --azul-escuro: #163f85;
+  --tinta: #1d1d1b;
+  --cinza: #6b6658;
+  --linha: #d8cfa6;
+  --perigo: #c92a2a;
+  --ok: #2b8a3e;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  font-size: 15px;
+  color: var(--tinta);
+  background: var(--creme);
+  display: flex;
+  flex-direction: column;
+}
+
+.topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  padding: 10px 16px;
+  background: var(--azul);
+  color: #fff;
+}
+.topo h1 { font-family: 'Chewy', cursive; font-weight: 400; font-size: 28px; margin: 0; letter-spacing: 0.5px; }
+.topo h1 span { color: var(--amarelo); }
+.abas { display: flex; gap: 6px; }
+.abas button {
+  font: inherit; font-weight: 700; cursor: pointer;
+  border: 2px solid #fff; border-radius: 999px; padding: 6px 16px;
+  background: transparent; color: #fff;
+}
+.abas button[aria-selected='true'] { background: var(--amarelo); color: var(--tinta); border-color: var(--amarelo); }
+.acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+
+.botao {
+  font: inherit; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  border: 2px solid var(--azul); border-radius: 999px; padding: 6px 14px;
+  background: #fff; color: var(--azul); white-space: nowrap;
+}
+.botao:hover { background: #eef3fc; }
+.botao:focus-visible, .abas button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--amarelo); outline-offset: 2px;
+}
+.botao.principal { background: var(--amarelo); border-color: var(--amarelo); color: var(--tinta); }
+.botao.principal:hover { background: #ffc642; }
+.botao.ativo { background: var(--azul); color: #fff; }
+.botao.perigo { border-color: var(--perigo); color: var(--perigo); }
+.botao.redondo { width: 36px; height: 36px; padding: 0; justify-content: center; }
+.topo .botao { border-color: #fff; }
+
+.area {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 400px;
+}
+.editor { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 10px; gap: 8px; }
+.ferramentas { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ferramentas .espaco { flex: 1; }
+#tela-editor {
+  flex: 1; min-height: 300px; width: 100%;
+  background: repeating-conic-gradient(#ece6c8 0% 25%, #f7f2da 0% 50%) 0 0 / 24px 24px;
+  border: 2px solid var(--linha); border-radius: 12px; touch-action: none;
+}
+.dica { margin: 0; min-height: 1.4em; color: var(--cinza); }
+
+.painel {
+  overflow-y: auto; padding: 10px 14px 40px; background: var(--papel);
+  border-left: 2px solid var(--linha);
+}
+.painel details { border-bottom: 2px solid var(--linha); padding: 8px 0 12px; }
+.painel summary { font-family: 'Chewy', cursive; font-size: 22px; color: var(--azul); cursor: pointer; }
+.painel label { display: block; margin: 8px 0; font-weight: 700; }
+.painel label.marcar { display: flex; gap: 8px; align-items: center; }
+.painel input:not([type='checkbox']):not([type='range']):not([type='file']), .painel select, .painel textarea {
+  display: block; width: 100%; margin-top: 4px; font: inherit; font-weight: 400;
+  padding: 7px 10px; border: 2px solid var(--linha); border-radius: 10px; background: #fff;
+}
+.painel input[type='range'] { display: block; width: 100%; accent-color: var(--azul); }
+.painel input[type='file'] { display: block; margin-top: 4px; font: inherit; font-weight: 400; max-width: 100%; }
+.painel output { font-weight: 400; color: var(--cinza); margin-left: 4px; }
+.painel fieldset { border: 2px solid var(--linha); border-radius: 12px; margin: 10px 0; }
+.painel legend { font-weight: 700; padding: 0 6px; }
+.ajuste-fino { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
+.ajuste-fino label { margin: 0; }
+.nota { color: var(--cinza); margin: 6px 0; font-size: 14px; }
+.contagem { font-family: 'Atkinson Hyperlegible', sans-serif; font-size: 14px; color: var(--cinza); }
+.linha { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+.linha select { flex: 1; margin: 0 !important; }
+
+.lista-pecas { list-style: none; padding: 0; margin: 8px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.lista-pecas button {
+  width: 100%; text-align: left; font: inherit; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 10px; border: 2px solid var(--linha); background: #fff;
+}
+.lista-pecas button[aria-pressed='true'] { border-color: var(--azul); background: #eef3fc; font-weight: 700; }
+.lista-pecas .cor { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.lista-pecas .estado { margin-left: auto; font-size: 13px; color: var(--cinza); }
+.lista-pecas .estado.ok { color: var(--ok); font-weight: 700; }
+
+.previa {
+  display: block; width: 100%; height: 300px; margin: 8px 0;
+  background: #fff; border: 2px solid var(--linha); border-radius: 12px; touch-action: none;
+}
+.previa.larga { height: 260px; }
+
+.aviso {
+  position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+  max-width: min(560px, calc(100% - 32px));
+  background: var(--tinta); color: #fff; padding: 12px 18px; border-radius: 12px; box-shadow: 0 6px 20px #0004;
+}
+.aviso.erro { background: var(--perigo); }
+
+dialog { max-width: min(620px, calc(100% - 32px)); border: none; border-radius: 16px; padding: 20px 24px; background: var(--papel); }
+dialog::backdrop { background: #0006; }
+dialog h2, dialog h3 { font-family: 'Chewy', cursive; font-weight: 400; color: var(--azul); margin: 0 0 8px; }
+dialog h2 { font-size: 28px; }
+dialog li { margin: 6px 0; }
+kbd { border: 1px solid var(--linha); border-bottom-width: 3px; border-radius: 6px; padding: 0 5px; background: #fff; font-family: inherit; }
+
+[hidden] { display: none !important; }
+
+@media (max-width: 900px) {
+  .area { grid-template-columns: 1fr; }
+  #tela-editor { min-height: 60vh; }
+  .painel { border-left: none; border-top: 2px solid var(--linha); }
+  .acoes { margin-left: 0; }
+}
