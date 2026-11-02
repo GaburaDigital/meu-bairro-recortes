@@ -71,7 +71,7 @@ Precisa do Node.js 20 ou mais novo.
 ```
 npm install
 npm run dev      # abre em http://localhost:5173/meu-bairro-recortes/
-npm run build    # atualiza a pasta docs/ (a que vai para o GitHub Pages)
+npm run build    # gera a pasta docs/ (o GitHub Actions faz isso sozinho ao publicar)
 ```
 
 ### Publicar no GitHub Pages (com GitHub Actions)

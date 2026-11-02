@@ -372,6 +372,7 @@ function trocarModo(modo: Modo): void {
   $('painel-personagem').hidden = modo !== 'personagem';
   $('painel-cenario').hidden = modo !== 'cenario';
   for (const e of document.querySelectorAll<HTMLElement>('.so-personagem')) e.hidden = modo !== 'personagem';
+  $('novo').textContent = modo === 'personagem' ? 'Novo personagem' : 'Novo cenário';
   $('ferr-pivo').hidden = modo !== 'personagem';
   editor.definirModo('editar');
   editor.definirImagem(midiaAtual().imagem);
@@ -497,6 +498,33 @@ $<HTMLInputElement>('abrir-projeto').addEventListener('change', async (ev) => {
   } catch (erro) {
     avisar('Não foi possível abrir o projeto: ' + String((erro as Error).message ?? erro), true);
   }
+});
+
+// Começar outro personagem (ou cenário) sem apagar peça por peça.
+// A imagem aberta continua (às vezes há mais de um desenho na mesma folha) e os ajustes gerais também.
+$('novo').addEventListener('click', () => {
+  const ehPersonagem = estado.modo === 'personagem';
+  const pergunta = ehPersonagem
+    ? 'Começar um novo personagem? Os contornos, os textos e o áudio deste somem da página. Se quiser continuar este depois, clique em Cancelar e use "Salvar projeto" antes.'
+    : 'Começar um novo cenário? Os elementos, os textos e o áudio deste somem da página. Se quiser continuar este depois, clique em Cancelar e use "Salvar projeto" antes.';
+  if (!confirm(pergunta)) return;
+  if (ehPersonagem) {
+    const antigo = estado.personagem;
+    estado.personagem = { ...novoPersonagem(), tipo: antigo.tipo === 'tia' ? 'personagem' : antigo.tipo, alturaDaArte: antigo.alturaDaArte, limparPapel: antigo.limparPapel };
+    estado.peca = 'cabeca';
+    idManualP = false;
+  } else {
+    const antigo = estado.cenario;
+    estado.cenario = { ...novoCenario(), alturaDaFolha: antigo.alturaDaFolha, limparPapel: antigo.limparPapel, exportarFundo: antigo.exportarFundo };
+    estado.elemento = null;
+    idManualC = false;
+    cacheRecortes.clear();
+  }
+  estado.midia[estado.modo].audio = null;
+  previa.dados = null;
+  editor.definirModo('editar');
+  atualizarTudo();
+  avisar(ehPersonagem ? 'Pronto! Comece o novo personagem pela cabeça.' : 'Pronto! Clique em "+ Novo elemento" para recortar.');
 });
 
 $('salvar-projeto').addEventListener('click', () => {
