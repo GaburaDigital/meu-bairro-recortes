@@ -17,6 +17,8 @@ tudo fica no seu computador.
   e a mesma ordem das peças (parado, a cabeça na frente; andando ou pulando, o braço de trás por cima).
 - **Ajustes**: afastar braços, afastar pernas, ajuste fino de cada peça (ou arraste a peça na pose "Parado"),
   tirar o branco do papel e altura da arte.
+- **Cor do desenho**: brilho, contraste e saturação. O ajuste já sai aplicado nas imagens e fica anotado no
+  `personagem.json` / `cenario.json` (`ajuste_de_cor`). Volta ao original ao clicar em **Novo personagem**.
 - Texto da apresentação e áudio gravado (.ogg).
 
 **Cenário**
@@ -24,6 +26,7 @@ tudo fica no seu computador.
 - Cada elemento tem nome, camada (fundo, meio, frente), espelhar e tamanho.
 - **Montagem** no tamanho do jogo, com o retângulo da tela e um boneco de referência; arraste para arrumar.
 - Opção de exportar também a folha inteira como fundo.
+- Brilho, contraste e saturação, como no personagem.
 - Texto da audiodescrição e áudio gravado (.ogg).
 
 ## Como usar
@@ -60,9 +63,20 @@ audiodescrição são preenchidos.
 | `Esc` | cancelar |
 | `Shift` + clique num ponto | apagar o ponto |
 
-## Áudio
+## Áudio e legenda
 
-O jogo usa **Ogg Vorbis (.ogg)**. A Godot não importa Opus: converta antes (o conversor de mídias vai fazer isso).
+Na parte **Audiodescrição gravada**, clique em **Importar gravação do estúdio (.zip)** e escolha o ZIP do desenho
+(`personagem.zip`, `npc.zip`, `cenario.zip`, `extra_*.zip`) ou o ZIP da criança inteira (aí escolha o desenho na lista).
+Esses ZIPs vêm do [Estúdio Meu Bairro](https://github.com/GaburaDigital/gabura-estudio-dublagem-meu-bairro).
+
+- Ouça as tomadas (▶) e marque a que vai para o jogo.
+- Escreva a **Legenda (o que foi falado)**: aparece como legenda no jogo e, sem áudio, é lida pela voz do aparelho.
+- A autoria é preenchida com o apelido da criança, se estiver vazia.
+- No ZIP exportado o áudio vai como `apresentacao.wav` (personagem) ou `audiodescricao.wav` (cenário), já cortado,
+  sem ronco e com volume nivelado. O `.json` registra quem gravou (`voz`: criança ou adulto da equipe).
+
+Também dá para usar um arquivo de áudio solto (.wav, .ogg Vorbis ou .mp3). O .ogg do Estúdio de Dublagem Gabura é
+Opus, que a Godot não abre: nesse caso use o WAV dele.
 
 ## Para programar
 

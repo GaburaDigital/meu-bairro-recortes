@@ -62,6 +62,19 @@
         <label>Afastar as pernas <output id="p-pernas-valor"></output>
           <input type="range" id="p-pernas" min="-40" max="80" step="1">
         </label>
+        <fieldset class="cor">
+          <legend>Cor do desenho</legend>
+          <label>Brilho <output id="p-brilho-valor"></output>
+            <input type="range" id="p-brilho" min="50" max="200" step="1">
+          </label>
+          <label>Contraste <output id="p-contraste-valor"></output>
+            <input type="range" id="p-contraste" min="50" max="200" step="1">
+          </label>
+          <label>Saturação (força das cores) <output id="p-saturacao-valor"></output>
+            <input type="range" id="p-saturacao" min="0" max="250" step="1">
+          </label>
+          <button class="botao" id="p-cor-zerar" type="button">Voltar ao original</button>
+        </fieldset>
         <label>Tirar o branco do papel <output id="p-papel-valor"></output>
           <input type="range" id="p-papel" min="0" max="60" step="1">
         </label>
@@ -86,13 +99,22 @@
         <label>Nome <input id="p-nome" placeholder="Ex.: Maria Clara"></label>
         <label>Nome da pasta <input id="p-id" placeholder="maria_clara"></label>
         <label>Autoria <input id="p-autoria" placeholder="Apelido da criança"></label>
-        <label>Apresentação (audiodescrição curta)
+        <fieldset class="gravacao">
+          <legend>Audiodescrição gravada</legend>
+          <label class="botao">Importar gravação do estúdio (.zip)<input type="file" id="p-gravacao" accept=".zip,application/zip" hidden></label>
+          <div id="p-gravacao-info" class="gravacao-info"></div>
+          <details class="outro-audio">
+            <summary>Ou usar um arquivo de áudio</summary>
+            <label class="arquivo">Áudio da apresentação (.wav, .ogg ou .mp3)
+              <input type="file" id="p-audio" accept="audio/*,.ogg,.wav,.mp3">
+            </label>
+          </details>
+          <p class="nota" id="p-audio-nome"></p>
+        </fieldset>
+        <label>Legenda (o que foi falado)
           <textarea id="p-apresentacao" rows="3" placeholder="Oi, eu sou a Maria. Tenho cabelo cacheado e blusa verde."></textarea>
         </label>
-        <label class="arquivo">Áudio da apresentação (.ogg)
-          <input type="file" id="p-audio" accept="audio/*,.ogg">
-        </label>
-        <p class="nota" id="p-audio-nome"></p>
+        <p class="nota">Aparece como legenda no jogo. Sem áudio gravado, é o texto que a voz do aparelho lê.</p>
       </details>
   </aside>
 
@@ -133,15 +155,37 @@
         <label>Nome do cenário <input id="c-nome" placeholder="Ex.: Praça da Igreja"></label>
         <label>Nome da pasta <input id="c-id" placeholder="praca_da_igreja"></label>
         <label>Autoria <input id="c-autoria" placeholder="Apelidos das crianças"></label>
-        <label>Audiodescrição (curta)
+        <fieldset class="gravacao">
+          <legend>Audiodescrição gravada</legend>
+          <label class="botao">Importar gravação do estúdio (.zip)<input type="file" id="c-gravacao" accept=".zip,application/zip" hidden></label>
+          <div id="c-gravacao-info" class="gravacao-info"></div>
+          <details class="outro-audio">
+            <summary>Ou usar um arquivo de áudio</summary>
+            <label class="arquivo">Áudio da audiodescrição (.wav, .ogg ou .mp3)
+              <input type="file" id="c-audio" accept="audio/*,.ogg,.wav,.mp3">
+            </label>
+          </details>
+          <p class="nota" id="c-audio-nome"></p>
+        </fieldset>
+        <label>Legenda (o que foi falado)
           <textarea id="c-audiodescricao" rows="3" placeholder="Casa amarela com árvore grande e rosa vermelha."></textarea>
         </label>
-        <label class="arquivo">Áudio da audiodescrição (.ogg)
-          <input type="file" id="c-audio" accept="audio/*,.ogg">
-        </label>
-        <p class="nota" id="c-audio-nome"></p>
+        <p class="nota">Aparece como legenda no jogo. Sem áudio gravado, é o texto que a voz do aparelho lê.</p>
         <label>Altura da folha no jogo (pixels) <input type="number" id="c-altura" min="100" max="4000" step="10"></label>
         <p class="nota">A tela do jogo tem 720 de altura e o personagem tem 190.</p>
+        <fieldset class="cor">
+          <legend>Cor do desenho</legend>
+          <label>Brilho <output id="c-brilho-valor"></output>
+            <input type="range" id="c-brilho" min="50" max="200" step="1">
+          </label>
+          <label>Contraste <output id="c-contraste-valor"></output>
+            <input type="range" id="c-contraste" min="50" max="200" step="1">
+          </label>
+          <label>Saturação (força das cores) <output id="c-saturacao-valor"></output>
+            <input type="range" id="c-saturacao" min="0" max="250" step="1">
+          </label>
+          <button class="botao" id="c-cor-zerar" type="button">Voltar ao original</button>
+        </fieldset>
         <label>Tirar o branco do papel <output id="c-papel-valor"></output>
           <input type="range" id="c-papel" min="0" max="60" step="1">
         </label>

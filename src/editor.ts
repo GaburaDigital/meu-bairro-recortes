@@ -35,6 +35,8 @@ const RAIO_PONTO = 7;
 export class Editor {
   imagem: HTMLImageElement | null = null;
   modo: ModoEditor = 'editar';
+  /** Filtro CSS para mostrar a imagem com o ajuste de cor. */
+  filtro = 'none';
   private escala = 1;
   private origem: Ponto = [0, 0];
   private arrastando: { tipo: 'mover' | 'ponto' | 'pivo' | 'encaixe'; indice?: number; ultimo: Ponto } | null = null;
@@ -243,7 +245,9 @@ export class Editor {
       return;
     }
     c.imageSmoothingQuality = 'high';
+    c.filter = this.filtro;
     c.drawImage(this.imagem, this.origem[0], this.origem[1], this.imagem.width * this.escala, this.imagem.height * this.escala);
+    c.filter = 'none';
     const selecionada = this.fonte.selecionada();
     for (const f of this.fonte.formas()) this.desenharForma(f, f.id === selecionada);
   }

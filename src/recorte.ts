@@ -1,6 +1,6 @@
 // A "tesoura": recorta cada contorno da imagem escaneada e calcula pivôs e encaixes
 // no mesmo formato que o jogo lê (personagem.json e cenario.json).
-import type { Contorno, ElementoCenario, Ponto, ProjetoCenario, ProjetoPersonagem } from './tipos';
+import { COR_PADRAO, type AjusteCor, type Contorno, type ElementoCenario, type Ponto, type ProjetoCenario, type ProjetoPersonagem } from './tipos';
 import { PECAS, PECA_POR_ID, type IdPeca } from './pecas';
 import { caixaDe } from './util';
 
@@ -13,14 +13,14 @@ export interface PecaPronta {
 }
 
 /** Recorta o contorno, já na escala final, com fundo transparente fora do contorno. */
-export function recortar(img: CanvasImageSource, contorno: Contorno, escala: number, limparPapel: number, pivoScan: Ponto | null) : PecaPronta {
+export function recortar(img: CanvasImageSource, contorno: Contorno, escala: number, limparPapel: number, pivoScan: Ponto | null, cor: AjusteCor = COR_PADRAO): PecaPronta {
   const caixa = caixaDe(contorno.pontos);
   const largura = Math.max(1, Math.ceil(caixa.largura * escala) + MARGEM * 2);
   const altura = Math.max(1, Math.ceil(caixa.altura * escala) + MARGEM * 2);
   const canvas = document.createElement('canvas');
   canvas.width = largura;
   canvas.height = altura;
-  const c = canvas.getContext('2d', { willReadFrequently: limparPapel > 0 })!;
+  const c = canvas.getContext('2d', { willReadFrequently: true })!;
   const paraSaida = (p: Ponto): Ponto => [(p[0] - caixa.x) * escala + MARGEM, (p[1] - caixa.y) * escala + MARGEM];
   c.beginPath();
   contorno.pontos.forEach((p, i) => {
@@ -34,8 +34,34 @@ export function recortar(img: CanvasImageSource, contorno: Contorno, escala: num
   c.setTransform(escala, 0, 0, escala, (-caixa.x) * escala + MARGEM, (-caixa.y) * escala + MARGEM);
   c.drawImage(img, 0, 0);
   c.restore();
+  aplicarCor(c, largura, altura, cor);
   if (limparPapel > 0) tirarBrancoDoPapel(c, largura, altura, limparPapel);
   return { canvas, pivo: pivoScan ? paraSaida(pivoScan) : [largura / 2, altura / 2] };
+}
+
+export function corNeutra(cor: AjusteCor): boolean {
+  return cor.brilho === 100 && cor.contraste === 100 && cor.saturacao === 100;
+}
+
+/** Filtro CSS equivalente (só para mostrar a imagem escaneada no editor). */
+export function filtroCss(cor: AjusteCor): string {
+  return corNeutra(cor) ? 'none' : `brightness(${cor.brilho}%) contrast(${cor.contraste}%) saturate(${cor.saturacao}%)`;
+}
+
+/** Brilho, contraste e saturação, aplicados direto nos pixels (funciona em qualquer navegador). */
+export function aplicarCor(c: CanvasRenderingContext2D, largura: number, altura: number, cor: AjusteCor): void {
+  if (corNeutra(cor)) return;
+  const b = cor.brilho / 100, k = cor.contraste / 100, s = cor.saturacao / 100;
+  const dados = c.getImageData(0, 0, largura, altura);
+  const px = dados.data;
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i + 3] === 0) continue;
+    let r = px[i] * b, g = px[i + 1] * b, bl = px[i + 2] * b;
+    r = (r - 128) * k + 128; g = (g - 128) * k + 128; bl = (bl - 128) * k + 128;
+    const luz = 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+    px[i] = luz + (r - luz) * s; px[i + 1] = luz + (g - luz) * s; px[i + 2] = luz + (bl - luz) * s; // Uint8Clamped corta 0..255
+  }
+  c.putImageData(dados, 0, 0);
 }
 
 /** Deixa transparente o branco/cinza claro do papel (não mexe nas cores do desenho). */
@@ -130,7 +156,7 @@ export function exportarPersonagem(img: CanvasImageSource, projeto: ProjetoPerso
   const pecas: Record<string, unknown> = {};
   for (const def of PECAS) {
     const p = projeto.pecas[def.id];
-    const pronta = recortar(img, p.contorno!, m.escala, projeto.limparPapel, p.pivo);
+    const pronta = recortar(img, p.contorno!, m.escala, projeto.limparPapel, p.pivo, projeto.cor);
     imagens[def.id] = pronta;
     pecas[def.id] = {
       arquivo: def.id + '.png',
@@ -147,6 +173,7 @@ export function exportarPersonagem(img: CanvasImageSource, projeto: ProjetoPerso
     altura_da_arte: projeto.alturaDaArte,
     afastar_bracos: projeto.afastarBracos,
     afastar_pernas: projeto.afastarPernas,
+    ajuste_de_cor: paraJsonCor(projeto.cor),
     pecas,
     apresentacao: { audio: audio ?? '', texto: projeto.apresentacao, trechos: [] },
   };
@@ -185,7 +212,7 @@ export function exportarCenario(img: HTMLImageElement, projeto: ProjetoCenario, 
   const escalaFolha = escalaDaFolha(projeto, img.height);
   const imagens: Record<string, HTMLCanvasElement> = {};
   const lista = elementos.map((e) => {
-    imagens[e.id + '.png'] = recortar(img, e.contorno, escalaFolha * e.escala, projeto.limparPapel, null).canvas;
+    imagens[e.id + '.png'] = recortar(img, e.contorno, escalaFolha * e.escala, projeto.limparPapel, null, projeto.cor).canvas;
     return { id: e.id, arquivo: e.id + '.png', posicao: posicaoDoElemento(e, escalaFolha), camada: e.camada, espelhar: e.espelhar };
   });
   let fundo = '';
@@ -196,6 +223,7 @@ export function exportarCenario(img: HTMLImageElement, projeto: ProjetoCenario, 
     const c = canvas.getContext('2d')!;
     c.imageSmoothingQuality = 'high';
     c.drawImage(img, 0, 0, canvas.width, canvas.height);
+    aplicarCor(c, canvas.width, canvas.height, projeto.cor);
     imagens['fundo.png'] = canvas;
     fundo = 'fundo.png';
   }
@@ -206,6 +234,7 @@ export function exportarCenario(img: HTMLImageElement, projeto: ProjetoCenario, 
     autoria: projeto.autoria,
     tamanho_da_folha: [Math.round(img.width * escalaFolha), Math.round(img.height * escalaFolha)],
     fundo,
+    ajuste_de_cor: paraJsonCor(projeto.cor),
     elementos: lista,
     audiodescricao: { audio: audio ?? '', texto: projeto.audiodescricao, trechos: [] },
   };
@@ -215,4 +244,9 @@ export function exportarCenario(img: HTMLImageElement, projeto: ProjetoCenario, 
 export function paraBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Não foi possível gerar a imagem.'))), 'image/png'));
+}
+
+/** O ajuste de cor vai junto no .json (já está aplicado nas imagens; fica registrado para consulta). */
+function paraJsonCor(cor: AjusteCor) {
+  return { brilho: cor.brilho / 100, contraste: cor.contraste / 100, saturacao: cor.saturacao / 100, aplicado_nas_imagens: true };
 }

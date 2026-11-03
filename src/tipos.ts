@@ -18,6 +18,15 @@ export interface PecaRecortada {
   ajuste: Ponto;
 }
 
+/** Ajuste de cor do desenho, em porcentagem (100 = como foi escaneado). */
+export interface AjusteCor {
+  brilho: number;
+  contraste: number;
+  saturacao: number;
+}
+
+export const COR_PADRAO: AjusteCor = { brilho: 100, contraste: 100, saturacao: 100 };
+
 export type TipoPersonagem = 'personagem' | 'npc' | 'tia';
 
 export interface ProjetoPersonagem {
@@ -31,6 +40,7 @@ export interface ProjetoPersonagem {
   afastarPernas: number;
   /** 0 = desligado; 1 a 60 = quanto do branco do papel vira transparente. */
   limparPapel: number;
+  cor: AjusteCor;
   pecas: Record<IdPeca, PecaRecortada>;
 }
 
@@ -57,6 +67,7 @@ export interface ProjetoCenario {
   alturaDaFolha: number;
   exportarFundo: boolean;
   limparPapel: number;
+  cor: AjusteCor;
   elementos: ElementoCenario[];
 }
 
@@ -68,6 +79,8 @@ export interface ArquivoProjeto {
   modo: Modo;
   imagem: string | null;
   audio: { nome: string; dados: string } | null;
+  /** Gravação importada do Estúdio Meu Bairro (com as tomadas). */
+  gravacao?: unknown;
   personagem?: ProjetoPersonagem;
   cenario?: ProjetoCenario;
 }

@@ -6,26 +6,35 @@ import { Editor, type FonteDoEditor, type FormaVisivel } from './editor';
 import { PreviaPersonagem, NOMES_ANIMACOES } from './previa';
 import { Montagem } from './montagem';
 import { PECAS, PECA_POR_ID, type IdPeca } from './pecas';
-import { exportarCenario, exportarPersonagem, montarPersonagem, paraBlob, pecaPronta, recortar, escalaDaFolha } from './recorte';
+import { exportarCenario, exportarPersonagem, montarPersonagem, paraBlob, pecaPronta, recortar, escalaDaFolha, filtroCss } from './recorte';
 import { guardar, recuperar } from './guardar';
+import { lerZipDoEstudio, ouvir, pararSom, vozDaGravacao, wavParaJogo, type GravacaoImportada } from './gravacao';
+import { COR_PADRAO } from './tipos';
 import type { ArquivoProjeto, Contorno, ElementoCenario, Modo, Ponto, ProjetoCenario, ProjetoPersonagem, TipoPersonagem } from './tipos';
 import { baixar, caixaDe, carregarImagem, el, lerComoDataUrl, paraId } from './util';
 
 // ---------- Estado ----------
 
-interface Midia { imagem: HTMLImageElement | null; imagemUrl: string | null; audio: { nome: string; dados: string } | null }
+interface Midia {
+  imagem: HTMLImageElement | null; imagemUrl: string | null;
+  audio: { nome: string; dados: string } | null;
+  /** Gravação do Estúdio Meu Bairro (tem prioridade sobre o arquivo de áudio solto). */
+  gravacao: GravacaoImportada | null;
+  /** Quando o ZIP da criança tem vários desenhos, ficam aqui para escolher. */
+  opcoes: GravacaoImportada[];
+}
 
 function novoPersonagem(): ProjetoPersonagem {
   const pecas = Object.fromEntries(PECAS.map((p) => [p.id, { contorno: null, pivo: null, encaixe: null, ajuste: [0, 0] }]));
   return {
     tipo: 'personagem', nome: '', id: '', autoria: '', apresentacao: '',
-    alturaDaArte: 460, afastarBracos: 0, afastarPernas: 0, limparPapel: 0,
+    alturaDaArte: 460, afastarBracos: 0, afastarPernas: 0, limparPapel: 0, cor: { ...COR_PADRAO },
     pecas: pecas as ProjetoPersonagem['pecas'],
   };
 }
 
 function novoCenario(): ProjetoCenario {
-  return { nome: '', id: '', autoria: '', audiodescricao: '', alturaDaFolha: 720, exportarFundo: false, limparPapel: 0, elementos: [] };
+  return { nome: '', id: '', autoria: '', audiodescricao: '', alturaDaFolha: 720, exportarFundo: false, limparPapel: 0, cor: { ...COR_PADRAO }, elementos: [] };
 }
 
 const estado = {
@@ -33,8 +42,8 @@ const estado = {
   personagem: novoPersonagem(),
   cenario: novoCenario(),
   midia: {
-    personagem: { imagem: null, imagemUrl: null, audio: null } as Midia,
-    cenario: { imagem: null, imagemUrl: null, audio: null } as Midia,
+    personagem: { imagem: null, imagemUrl: null, audio: null, gravacao: null, opcoes: [] } as Midia,
+    cenario: { imagem: null, imagemUrl: null, audio: null, gravacao: null, opcoes: [] } as Midia,
   },
   peca: 'cabeca' as IdPeca,
   elemento: null as string | null,
@@ -137,7 +146,7 @@ function atualizarPrevia(): void {
   if (!img || m.faltando.length > 0) { previa.dados = null; return; }
   const imagens = Object.fromEntries(PECAS.map((d) => {
     const peca = p.pecas[d.id];
-    return [d.id, recortar(img, peca.contorno!, m.escala, p.limparPapel, peca.pivo)];
+    return [d.id, recortar(img, peca.contorno!, m.escala, p.limparPapel, peca.pivo, p.cor)];
   }));
   previa.dados = {
     imagens: imagens as never, encaixes: m.encaixes, alturaDaArte: p.alturaDaArte,
@@ -172,10 +181,10 @@ const montagem = new Montagem($('tela-montagem'), {
     const img = estado.midia.cenario.imagem;
     if (!img) return null;
     const escala = escalaDaFolha(estado.cenario, img.height) * e.escala;
-    const assinatura = JSON.stringify([e.contorno.pontos, escala, estado.cenario.limparPapel]);
+    const assinatura = JSON.stringify([e.contorno.pontos, escala, estado.cenario.limparPapel, estado.cenario.cor]);
     const guardado = cacheRecortes.get(e.chave);
     if (guardado?.assinatura === assinatura) return guardado.canvas;
-    const canvas = recortar(img, e.contorno, escala, estado.cenario.limparPapel, null).canvas;
+    const canvas = recortar(img, e.contorno, escala, estado.cenario.limparPapel, null, estado.cenario.cor).canvas;
     cacheRecortes.set(e.chave, { assinatura, canvas });
     return canvas;
   },
@@ -237,6 +246,18 @@ ligarTexto('c-id', () => C().id, (v) => { C().id = paraId(v); idManualC = v !== 
 ligarTexto('c-autoria', () => C().autoria, (v) => { C().autoria = v; });
 ligarTexto('c-audiodescricao', () => C().audiodescricao, (v) => { C().audiodescricao = v; });
 ligarNumero('c-altura', () => C().alturaDaFolha, (v) => { if (v >= 100) C().alturaDaFolha = v; });
+const porcento = (v: number) => `${v}%`;
+for (const [campo, chave] of [['brilho', 'brilho'], ['contraste', 'contraste'], ['saturacao', 'saturacao']] as const) {
+  ligarNumero(`p-${campo}`, () => P().cor[chave], (v) => { P().cor[chave] = v; atualizarPreviaDepois(); }, `p-${campo}-valor`, porcento);
+  ligarNumero(`c-${campo}`, () => C().cor[chave], (v) => { C().cor[chave] = v; }, `c-${campo}-valor`, porcento);
+}
+for (const modo of ['p', 'c'] as const) {
+  $(`${modo}-cor-zerar`).addEventListener('click', () => {
+    (modo === 'p' ? P() : C()).cor = { ...COR_PADRAO };
+    atualizarPreviaDepois();
+    atualizarTudo(false);
+  });
+}
 ligarNumero('c-papel', () => C().limparPapel, (v) => { C().limparPapel = v; }, 'c-papel-valor', (v) => (v === 0 ? 'desligado' : String(v)));
 const caixaFundo = $<HTMLInputElement>('c-fundo');
 caixaFundo.addEventListener('change', () => { C().exportarFundo = caixaFundo.checked; });
@@ -291,7 +312,11 @@ async function lerAudio(entrada: HTMLInputElement, modo: Modo): Promise<void> {
   const arquivo = entrada.files?.[0];
   if (!arquivo) return;
   estado.midia[modo].audio = { nome: arquivo.name, dados: await lerComoDataUrl(arquivo) };
-  if (!arquivo.name.toLowerCase().endsWith('.ogg')) avisar('Atenção: o jogo usa áudio .ogg (Ogg Vorbis). Converta o arquivo antes de usar no jogo.', true);
+  estado.midia[modo].gravacao = null;
+  estado.midia[modo].opcoes = [];
+  const ext = extensao(arquivo.name);
+  if (!['wav', 'ogg', 'mp3'].includes(ext)) avisar('A Godot abre áudio .wav, .ogg (Vorbis) ou .mp3. Converta este arquivo antes.', true);
+  else if (ext === 'ogg') avisar('Atenção: se este .ogg for Opus (do estúdio de dublagem), a Godot não abre. Prefira .wav.');
   entrada.value = '';
   atualizarTudo(false);
 }
@@ -299,10 +324,72 @@ $<HTMLInputElement>('p-audio').addEventListener('change', (e) => lerAudio(e.targ
 $<HTMLInputElement>('c-audio').addEventListener('change', (e) => lerAudio(e.target as HTMLInputElement, 'cenario'));
 campos.push(() => {
   for (const [modo, id] of [['personagem', 'p-audio-nome'], ['cenario', 'c-audio-nome']] as const) {
-    const a = estado.midia[modo].audio;
-    $(id).textContent = a ? `Áudio escolhido: ${a.nome}` : 'Sem áudio: o jogo usa a voz do aparelho para ler o texto.';
+    const m = estado.midia[modo];
+    $(id).textContent = m.gravacao ? '' : m.audio ? `Áudio escolhido: ${m.audio.nome}` : 'Sem áudio: o jogo usa a voz do aparelho para ler a legenda.';
   }
 });
+
+// Gravação do Estúdio Meu Bairro: ouvir as tomadas, escolher uma e escrever a legenda.
+async function importarGravacao(entrada: HTMLInputElement, modo: Modo): Promise<void> {
+  const arquivo = entrada.files?.[0];
+  entrada.value = '';
+  if (!arquivo) return;
+  try {
+    const lista = await lerZipDoEstudio(arquivo);
+    const m = estado.midia[modo];
+    m.opcoes = lista.length > 1 ? lista : [];
+    const preferidos = modo === 'personagem' ? (P().tipo === 'npc' ? ['npc', 'personagem'] : ['personagem', 'npc']) : ['cenario', 'extra'];
+    const g = preferidos.map((t) => lista.find((x) => x.tipo === t)).find(Boolean) ?? lista[0];
+    usarGravacao(modo, g);
+    avisar(`Gravação de ${g.apelido} (${g.titulo}) importada. Ouça, escolha a tomada e escreva a legenda.`);
+  } catch (erro) {
+    avisar('Não foi possível abrir a gravação: ' + String((erro as Error).message ?? erro), true);
+  }
+}
+
+function usarGravacao(modo: Modo, g: GravacaoImportada): void {
+  const m = estado.midia[modo];
+  m.gravacao = g;
+  m.audio = null;
+  const projeto = modo === 'personagem' ? P() : C();
+  if (!projeto.autoria.trim()) projeto.autoria = g.apelido;
+  atualizarTudo(false);
+}
+
+$<HTMLInputElement>('p-gravacao').addEventListener('change', (e) => importarGravacao(e.target as HTMLInputElement, 'personagem'));
+$<HTMLInputElement>('c-gravacao').addEventListener('change', (e) => importarGravacao(e.target as HTMLInputElement, 'cenario'));
+
+function desenharGravacao(modo: Modo): void {
+  const caixa = $(modo === 'personagem' ? 'p-gravacao-info' : 'c-gravacao-info');
+  const m = estado.midia[modo];
+  const g = m.gravacao;
+  if (!g) { caixa.replaceChildren(); return; }
+  const partes: Node[] = [];
+  if (m.opcoes.length > 1) {
+    const sel = el('select', { 'aria-label': 'Qual desenho desta criança' });
+    m.opcoes.forEach((o, i) => sel.append(el('option', { value: String(i) }, o.titulo)));
+    sel.value = String(Math.max(0, m.opcoes.indexOf(g)));
+    sel.addEventListener('change', () => usarGravacao(modo, m.opcoes[Number(sel.value)]));
+    partes.push(el('label', {}, 'Qual desenho', sel));
+  }
+  const voz = vozDaGravacao(g);
+  partes.push(el('p', { class: 'origem' }, `${g.apelido} · ${g.titulo}` + (voz.adulto ? ` · voz de adulto: ${voz.adulto}` : '')));
+  if (g.anotacao) partes.push(el('p', { class: 'nota' }, `Anotação: ${g.anotacao}`));
+  const lista = el('div', { class: 'tomadas', role: 'radiogroup', 'aria-label': 'Tomada que vai para o jogo' });
+  g.tomadas.forEach((t, i) => {
+    const radio = el('input', { type: 'radio', name: `tomada-${modo}`, value: String(i) });
+    radio.checked = i === g.escolhida;
+    radio.addEventListener('change', () => { g.escolhida = i; atualizarTudo(false); });
+    const tocar = el('button', { type: 'button', class: 'botao redondo', 'aria-label': `Ouvir a tomada ${i + 1}`, title: 'Ouvir' }, '▶');
+    tocar.addEventListener('click', (ev) => { ev.preventDefault(); ouvir(t); });
+    lista.append(el('label', { class: 'tomada' + (i === g.escolhida ? ' escolhida' : '') }, radio, `Tomada ${i + 1}`, tocar,
+      el('small', {}, `${(t.fim - t.inicio).toFixed(1).replace('.', ',')} s`)));
+  });
+  const tirar = el('button', { type: 'button', class: 'botao' }, 'Tirar esta gravação');
+  tirar.addEventListener('click', () => { pararSom(); m.gravacao = null; m.opcoes = []; atualizarTudo(false); });
+  caixa.replaceChildren(...partes, lista, tirar);
+}
+campos.push(() => { desenharGravacao('personagem'); desenharGravacao('cenario'); });
 
 // ---------- Lista de peças e de elementos ----------
 
@@ -354,6 +441,7 @@ function atualizarTudo(refazerPrevia = true): void {
   for (const f of campos) f();
   atualizarListas();
   atualizarDica();
+  editor.filtro = filtroCss(estado.modo === 'personagem' ? P().cor : C().cor);
   editor.desenhar();
   if (estado.modo === 'personagem') {
     if (refazerPrevia) atualizarPreviaDepois();
@@ -466,7 +554,7 @@ $<HTMLInputElement>('abrir-imagem').addEventListener('change', async (ev) => {
 function paraArquivo(modo: Modo): ArquivoProjeto {
   const m = estado.midia[modo];
   return {
-    versao_formato: 1, modo, imagem: m.imagemUrl, audio: m.audio,
+    versao_formato: 1, modo, imagem: m.imagemUrl, audio: m.audio, gravacao: m.gravacao,
     ...(modo === 'personagem' ? { personagem: estado.personagem } : { cenario: estado.cenario }),
   };
 }
@@ -475,14 +563,18 @@ async function carregarArquivo(a: ArquivoProjeto, trocar = true): Promise<void> 
   if (a.versao_formato !== 1) throw new Error('Este projeto é de uma versão diferente da ferramenta.');
   if (a.modo === 'personagem' && a.personagem) {
     estado.personagem = { ...novoPersonagem(), ...a.personagem };
+    estado.personagem.cor = { ...COR_PADRAO, ...a.personagem.cor };
     for (const d of PECAS) estado.personagem.pecas[d.id] = Object.assign({ contorno: null, pivo: null, encaixe: null, ajuste: [0, 0] as Ponto }, a.personagem.pecas?.[d.id]);
     idManualP = estado.personagem.id !== paraId(estado.personagem.nome);
   } else if (a.modo === 'cenario' && a.cenario) {
     estado.cenario = { ...novoCenario(), ...a.cenario };
+    estado.cenario.cor = { ...COR_PADRAO, ...a.cenario.cor };
     estado.elemento = estado.cenario.elementos[0]?.chave ?? null;
     idManualC = estado.cenario.id !== paraId(estado.cenario.nome);
   } else throw new Error('Arquivo de projeto incompleto.');
   estado.midia[a.modo].audio = a.audio ?? null;
+  estado.midia[a.modo].gravacao = (a.gravacao as GravacaoImportada | undefined) ?? null;
+  estado.midia[a.modo].opcoes = [];
   await definirImagem(a.modo, a.imagem);
   if (trocar) trocarModo(a.modo);
 }
@@ -521,6 +613,9 @@ $('novo').addEventListener('click', () => {
     cacheRecortes.clear();
   }
   estado.midia[estado.modo].audio = null;
+  estado.midia[estado.modo].gravacao = null;
+  estado.midia[estado.modo].opcoes = [];
+  pararSom();
   previa.dados = null;
   editor.definirModo('editar');
   atualizarTudo();
@@ -554,22 +649,26 @@ async function montarZip(): Promise<{ blob: Blob; nome: string; pasta: string }>
     const p = P();
     if (!p.id) throw new Error('Escreva o nome do personagem.');
     const pasta = p.tipo === 'tia' ? 'outros/tia/' : `${p.tipo === 'npc' ? 'npcs' : 'personagens'}/${p.id}/`;
-    const audio = m.audio ? `apresentacao.${extensao(m.audio.nome)}` : null;
+    const audio = m.gravacao ? 'apresentacao.wav' : m.audio ? `apresentacao.${extensao(m.audio.nome)}` : null;
     const r = exportarPersonagem(m.imagem, p, audio);
+    if (m.gravacao) r.json.voz = vozDaGravacao(m.gravacao);
     for (const [id, peca] of Object.entries(r.imagens)) zip.file(pasta + id + '.png', await paraBlob(peca.canvas));
     zip.file(pasta + 'personagem.json', JSON.stringify(r.json, null, 2) + '\n');
-    if (m.audio && audio) zip.file(pasta + audio, dadosDoDataUrl(m.audio.dados), { base64: true });
+    if (m.gravacao) zip.file(pasta + 'apresentacao.wav', wavParaJogo(m.gravacao));
+    else if (m.audio && audio) zip.file(pasta + audio, dadosDoDataUrl(m.audio.dados), { base64: true });
     zip.file('LEIA.txt', LEIA(pasta));
     return { blob: await zip.generateAsync({ type: 'blob' }), nome: `${p.tipo === 'tia' ? 'tia' : p.id}.zip`, pasta };
   }
   const c = C();
   if (!c.id) throw new Error('Escreva o nome do cenário.');
   const pasta = `cenarios/${c.id}/`;
-  const audio = m.audio ? `audiodescricao.${extensao(m.audio.nome)}` : null;
+  const audio = m.gravacao ? 'audiodescricao.wav' : m.audio ? `audiodescricao.${extensao(m.audio.nome)}` : null;
   const r = exportarCenario(m.imagem, c, audio);
+  if (m.gravacao) r.json.voz = vozDaGravacao(m.gravacao);
   for (const [nome, canvas] of Object.entries(r.imagens)) zip.file(pasta + nome, await paraBlob(canvas));
   zip.file(pasta + 'cenario.json', JSON.stringify(r.json, null, 2) + '\n');
-  if (m.audio && audio) zip.file(pasta + audio, dadosDoDataUrl(m.audio.dados), { base64: true });
+  if (m.gravacao) zip.file(pasta + 'audiodescricao.wav', wavParaJogo(m.gravacao));
+  else if (m.audio && audio) zip.file(pasta + audio, dadosDoDataUrl(m.audio.dados), { base64: true });
   zip.file('LEIA.txt', LEIA(pasta));
   return { blob: await zip.generateAsync({ type: 'blob' }), nome: `cenario_${c.id}.zip`, pasta };
 }

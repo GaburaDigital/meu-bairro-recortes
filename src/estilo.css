@@ -88,7 +88,7 @@ body {
 .painel summary { font-family: 'Chewy', cursive; font-size: 22px; color: var(--azul); cursor: pointer; }
 .painel label { display: block; margin: 8px 0; font-weight: 700; }
 .painel label.marcar { display: flex; gap: 8px; align-items: center; }
-.painel input:not([type='checkbox']):not([type='range']):not([type='file']), .painel select, .painel textarea {
+.painel input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']), .painel select, .painel textarea {
   display: block; width: 100%; margin-top: 4px; font: inherit; font-weight: 400;
   padding: 7px 10px; border: 2px solid var(--linha); border-radius: 10px; background: #fff;
 }
@@ -136,6 +136,15 @@ dialog li { margin: 6px 0; }
 kbd { border: 1px solid var(--linha); border-bottom-width: 3px; border-radius: 6px; padding: 0 5px; background: #fff; font-family: inherit; }
 
 [hidden] { display: none !important; }
+
+.gravacao-info { margin: 8px 0; }
+.gravacao-info .origem { font-weight: 700; margin: 4px 0; }
+.gravacao-info .tomadas { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.gravacao-info .tomada { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 2px solid var(--linha); border-radius: 10px; background: #fff; font-weight: 400; margin: 0; }
+.gravacao-info .tomada.escolhida { border-color: var(--azul); background: #eef3fc; font-weight: 700; }
+.gravacao-info .tomada small { color: var(--cinza); margin-left: auto; }
+.outro-audio { border: none !important; padding: 4px 0 !important; }
+.outro-audio summary { font-family: inherit !important; font-size: 14px !important; color: var(--cinza) !important; }
 
 @media (max-width: 900px) {
   .area { grid-template-columns: 1fr; }
