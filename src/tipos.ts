@@ -41,6 +41,8 @@ export interface ProjetoPersonagem {
   /** 0 = desligado; 1 a 60 = quanto do branco do papel vira transparente. */
   limparPapel: number;
   cor: AjusteCor;
+  /** Ponto especial (ex.: ponta da varinha da Tia), marcado no desenho de uma peça. Os efeitos saem dali. */
+  pontoMagico: { peca: IdPeca; ponto: Ponto } | null;
   pecas: Record<IdPeca, PecaRecortada>;
 }
 

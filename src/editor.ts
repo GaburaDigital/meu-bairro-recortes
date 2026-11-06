@@ -23,12 +23,15 @@ export interface FonteDoEditor {
   definirContorno(id: string, contorno: Contorno): void;
   definirPivo(id: string, pivo: Ponto): void;
   definirEncaixe?(id: string, ponto: Ponto): void;
+  definirPontoMagico?(id: string, ponto: Ponto): void;
+  /** Ponto mágico para desenhar (estrela). */
+  pontoMagico?(): Ponto | null;
   /** Chamado quando um contorno é fechado (para sugerir o pivô, por exemplo). */
   aoFecharContorno(id: string): void;
   aoMudar(): void;
 }
 
-export type ModoEditor = 'editar' | 'desenhar' | 'pivo' | 'encaixe';
+export type ModoEditor = 'editar' | 'desenhar' | 'pivo' | 'encaixe' | 'magico';
 
 const RAIO_PONTO = 7;
 
@@ -127,8 +130,9 @@ export class Editor {
     }
     const forma = this.formaSelecionada();
     if (!forma) return;
-    if (this.modo === 'pivo' || this.modo === 'encaixe') {
-      if (this.modo === 'pivo') this.fonte.definirPivo(forma.id, ponto);
+    if (this.modo === 'pivo' || this.modo === 'encaixe' || this.modo === 'magico') {
+      if (this.modo === 'magico') this.fonte.definirPontoMagico?.(forma.id, ponto);
+      else if (this.modo === 'pivo') this.fonte.definirPivo(forma.id, ponto);
       else this.fonte.definirEncaixe?.(forma.id, ponto);
       this.definirModo('editar');
       this.fonte.aoMudar();
@@ -250,6 +254,15 @@ export class Editor {
     c.filter = 'none';
     const selecionada = this.fonte.selecionada();
     for (const f of this.fonte.formas()) this.desenharForma(f, f.id === selecionada);
+    const magico = this.fonte.pontoMagico?.();
+    if (magico) {
+      const [x, y] = this.paraTela(magico);
+      c.beginPath();
+      for (let k = 0; k < 10; k++) { const r = k % 2 ? 5 : 13; c.lineTo(x + Math.cos(k * Math.PI / 5 - Math.PI / 2) * r, y + Math.sin(k * Math.PI / 5 - Math.PI / 2) * r); }
+      c.closePath();
+      c.fillStyle = '#9b6bff'; c.fill();
+      c.lineWidth = 2; c.strokeStyle = '#fff'; c.stroke();
+    }
   }
 
   private desenharForma(f: FormaVisivel, selecionada: boolean): void {

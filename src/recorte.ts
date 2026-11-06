@@ -174,6 +174,7 @@ export function exportarPersonagem(img: CanvasImageSource, projeto: ProjetoPerso
     afastar_bracos: projeto.afastarBracos,
     afastar_pernas: projeto.afastarPernas,
     ajuste_de_cor: paraJsonCor(projeto.cor),
+    ...(projeto.pontoMagico && projeto.pecas[projeto.pontoMagico.peca].contorno ? { ponto_magico: pontoNaPeca(projeto, m.escala) } : {}),
     pecas,
     apresentacao: { audio: audio ?? '', texto: projeto.apresentacao, trechos: [] },
   };
@@ -249,4 +250,11 @@ export function paraBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 /** O ajuste de cor vai junto no .json (já está aplicado nas imagens; fica registrado para consulta). */
 function paraJsonCor(cor: AjusteCor) {
   return { brilho: cor.brilho / 100, contraste: cor.contraste / 100, saturacao: cor.saturacao / 100, aplicado_nas_imagens: true };
+}
+
+/** Ponto mágico em pixels da imagem exportada da peça (mesma conta do recorte). */
+function pontoNaPeca(projeto: ProjetoPersonagem, escala: number) {
+  const pm = projeto.pontoMagico!;
+  const caixa = caixaDe(projeto.pecas[pm.peca].contorno!.pontos);
+  return { peca: pm.peca, posicao: [Math.round((pm.ponto[0] - caixa.x) * escala + MARGEM), Math.round((pm.ponto[1] - caixa.y) * escala + MARGEM)] };
 }

@@ -28,7 +28,7 @@ function novoPersonagem(): ProjetoPersonagem {
   const pecas = Object.fromEntries(PECAS.map((p) => [p.id, { contorno: null, pivo: null, encaixe: null, ajuste: [0, 0] }]));
   return {
     tipo: 'personagem', nome: '', id: '', autoria: '', apresentacao: '',
-    alturaDaArte: 460, afastarBracos: 0, afastarPernas: 0, limparPapel: 0, cor: { ...COR_PADRAO },
+    alturaDaArte: 460, afastarBracos: 0, afastarPernas: 0, limparPapel: 0, cor: { ...COR_PADRAO }, pontoMagico: null,
     pecas: pecas as ProjetoPersonagem['pecas'],
   };
 }
@@ -91,6 +91,10 @@ const fonteEditor: FonteDoEditor = {
   definirPivo(id, pivo) {
     if (estado.modo === 'personagem') estado.personagem.pecas[id as IdPeca].pivo = pivo;
   },
+  definirPontoMagico(id, ponto) {
+    if (estado.modo === 'personagem') { estado.personagem.pontoMagico = { peca: id as IdPeca, ponto }; avisar(`Ponta da varinha marcada em "${PECA_POR_ID[id as IdPeca].nome}".`); }
+  },
+  pontoMagico: () => (estado.modo === 'personagem' ? estado.personagem.pontoMagico?.ponto ?? null : null),
   definirEncaixe(id, ponto) {
     if (estado.modo === 'personagem' && PECA_POR_ID[id as IdPeca].pai) estado.personagem.pecas[id as IdPeca].encaixe = ponto;
   },
@@ -427,9 +431,10 @@ function atualizarDica(): void {
   else if (modo === 'desenhar') texto = 'Clique em volta do desenho. Para fechar: clique no primeiro ponto, duplo clique ou Enter. Backspace desfaz.';
   else if (modo === 'pivo') texto = 'Clique onde a peça gira (a articulação).';
   else if (modo === 'encaixe') texto = 'Clique no desenho do pai, no lugar onde esta peça se prende.';
+  else if (modo === 'magico') texto = 'Escolha a peça que segura a varinha e clique na ponta dela (de onde saem os brilhos).';
   else texto = 'Arraste os pontos e o pivô para ajustar. Clique num recorte para escolher. Roda do mouse: zoom.';
   $('dica-editor').textContent = texto;
-  for (const [id, m] of [['ferr-desenhar', 'desenhar'], ['ferr-pivo', 'pivo'], ['ferr-encaixe', 'encaixe']] as const) {
+  for (const [id, m] of [['ferr-desenhar', 'desenhar'], ['ferr-pivo', 'pivo'], ['ferr-encaixe', 'encaixe'], ['ferr-magico', 'magico']] as const) {
     $(id).classList.toggle('ativo', modo === m);
   }
 }
@@ -484,6 +489,12 @@ $('ferr-desenhar').addEventListener('click', () => {
   atualizarTudo(false);
 });
 $('ferr-pivo').addEventListener('click', () => { editor.definirModo('pivo'); atualizarDica(); });
+$('ferr-magico').addEventListener('click', () => {
+  if (!P().pecas[estado.peca].contorno?.fechado) return avisar('Escolha primeiro a peça (já recortada) que segura a varinha, por exemplo o antebraço.', true);
+  editor.definirModo('magico');
+  atualizarDica();
+});
+campos.push(() => { $('ferr-magico').hidden = estado.modo !== 'personagem' || P().tipo !== 'tia'; });
 $('ferr-encaixe').addEventListener('click', () => {
   if (!PECA_POR_ID[estado.peca].pai) return avisar('A base não tem encaixe: ela é o centro do boneco.');
   editor.definirModo('encaixe');
